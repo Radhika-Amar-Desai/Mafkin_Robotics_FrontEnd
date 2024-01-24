@@ -1,4 +1,5 @@
 # Mafkin_Robotics_FrontEnd
+
 ## Description
 This repository contains all the work done by the frontend team at Mafkin Robotics. This repo contains all the documentation and codes concerned with the frontend (visual odometry) work.
 
@@ -8,6 +9,7 @@ The team also maintains a notion document for all the tasks and materials studie
 ## Progress
 * Feature Extraction using deep learning done.
 * Visual odometry using ORB Flann feature matching using KITTI_2 dataset done.
+* Team has studied visual odometry from slam book ( Chapters 1 to 8 ) and notes for the same have been documented. 
 
 ## Next Task
 * Performing visual odometry using features extracted by deep learning.
