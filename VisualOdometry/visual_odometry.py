@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import cv2
+import csv
 
 from lib.visualization import plotting
 from lib.visualization.video import play_trip
@@ -10,11 +11,15 @@ from tqdm import tqdm
 
 class VisualOdometry():
     def __init__(self, data_dir):
+        data_dir = os.path.join ( "VisualOdometry" , data_dir )
+        
         self.K, self.P = self._load_calib(os.path.join(data_dir, 'calib.txt'))
         self.gt_poses = self._load_poses(os.path.join(data_dir,"poses.txt"))
         self.images = self._load_images(os.path.join(data_dir,"image_l"))
         self.orb = cv2.ORB_create(3000)
+        
         FLANN_INDEX_LSH = 6
+        
         index_params = dict(algorithm=FLANN_INDEX_LSH, table_number=6, key_size=12, multi_probe_level=1)
         search_params = dict(checks=50)
         self.flann = cv2.FlannBasedMatcher(indexParams=index_params, searchParams=search_params)
@@ -135,6 +140,7 @@ class VisualOdometry():
         # Get the image points form the good matches
         q1 = np.float32([kp1[m.queryIdx].pt for m in good])
         q2 = np.float32([kp2[m.trainIdx].pt for m in good])
+
         return q1, q2
 
     def get_pose(self, q1, q2):
@@ -151,13 +157,15 @@ class VisualOdometry():
         transformation_matrix (ndarray): The transformation matrix
         """
         # Essential matrix
-        E, _ = cv2.findEssentialMat(q1, q2, self.K, threshold=1)
+        E, _ = cv2.findEssentialMat(q1, q2, self.K, 
+                                    threshold=1)
 
         # Decompose the Essential matrix into R and t
         R, t = self.decomp_essential_mat(E, q1, q2)
 
         # Get transformation matrix
-        transformation_matrix = self._form_transf(R, np.squeeze(t))
+        transformation_matrix = self._form_transf(R, 
+                                                np.squeeze(t))
         return transformation_matrix
 
     def decomp_essential_mat(self, E, q1, q2):
@@ -222,7 +230,6 @@ class VisualOdometry():
 
         return [R1, t]
 
-
 def main():
     data_dir = "KITTI_sequence_2"  # Try KITTI_sequence_2 too
     vo = VisualOdometry(data_dir)
@@ -231,6 +238,7 @@ def main():
 
     gt_path = []
     estimated_path = []
+    key_features = []
     for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="pose")):
         if i == 0:
             cur_pose = gt_pose
@@ -238,10 +246,23 @@ def main():
             q1, q2 = vo.get_matches(i)
             transf = vo.get_pose(q1, q2)
             cur_pose = np.matmul(cur_pose, np.linalg.inv(transf))
+            
+            key_features.append ( q1 )
+            key_features.append ( q2 )
+
         gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+    
     plotting.visualize_paths(gt_path, estimated_path, "Visual Odometry", file_out=os.path.basename(data_dir) + ".html")
+    
+    file_path = r"VisualOdometry/features.csv"
 
+    with open(file_path, 'w', newline='') as csvfile:
+        # Create a CSV writer object
+        csv_writer = csv.writer(csvfile)
+
+        # Write multiple lists as rows in the CSV file
+        csv_writer.writerows(key_features)
 
 if __name__ == "__main__":
     main()
