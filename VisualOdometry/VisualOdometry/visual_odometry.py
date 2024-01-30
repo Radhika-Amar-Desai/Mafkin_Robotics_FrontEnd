@@ -231,7 +231,7 @@ class VisualOdometry():
         return [R1, t]
 
 def main():
-    data_dir = "KITTI_sequence_2"  # Try KITTI_sequence_2 too
+    data_dir = r"VisualOdometry\KITTI_sequence_2"  # Try KITTI_sequence_2 too
     vo = VisualOdometry(data_dir)
 
     play_trip(vo.images)  # Comment out to not play the trip
@@ -255,14 +255,14 @@ def main():
     
     plotting.visualize_paths(gt_path, estimated_path, "Visual Odometry", file_out=os.path.basename(data_dir) + ".html")
     
-    file_path = r"VisualOdometry/features.csv"
+    # file_path = r"VisualOdometry/features.csv"
 
-    with open(file_path, 'w', newline='') as csvfile:
-        # Create a CSV writer object
-        csv_writer = csv.writer(csvfile)
+    # with open(file_path, 'w', newline='') as csvfile:
+    #     # Create a CSV writer object
+    #     csv_writer = csv.writer(csvfile)
 
-        # Write multiple lists as rows in the CSV file
-        csv_writer.writerows(key_features)
+    #     # Write multiple lists as rows in the CSV file
+    #     csv_writer.writerows(key_features)
 
 if __name__ == "__main__":
     main()
