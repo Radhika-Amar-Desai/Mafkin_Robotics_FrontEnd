@@ -68,27 +68,3 @@ class SiameseNetwork(nn.Module):
         output1 = self.cnn_rnn1(input1)
         output2 = self.cnn_rnn2(input2)
         return output1 , output2 
-
-# Define hyperparameters
-cnn_hidden_size = 64
-rnn_hidden_size = 128
-num_classes = 10
-
-# Create an instance of the CNN_RNN model
-model = CNN_RNN(cnn_hidden_size, rnn_hidden_size, num_classes)
-
-# # Create a sample tensor of appropriate dimensions
-batch_size = 1
-seq_length = 2
-channels = 3
-height = 32
-width = 32
-
-sample_tensor = torch.randn(batch_size, 
-                            seq_length, 
-                            channels, 
-                            height, width)
-print ( sample_tensor )
-# # Pass the sample tensor through the model
-output = model(sample_tensor)
-print ( output )
