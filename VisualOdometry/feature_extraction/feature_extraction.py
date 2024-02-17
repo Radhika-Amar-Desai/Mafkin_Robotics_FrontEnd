@@ -4,51 +4,55 @@ import utils as utils
 import os
 
 def find_corresponding_orb_features(image1, image2):
-    # Convert images to grayscale
-    gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
+    # Load images
+    img1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
+    img2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
 
     # Initialize ORB detector
     orb = cv2.ORB_create()
 
-    # Detect ORB features and compute descriptors
-    keypoints1, descriptors1 = orb.detectAndCompute(gray1, None)
-    keypoints2, descriptors2 = orb.detectAndCompute(gray2, None)
+    # Detect keypoints and compute descriptors
+    keypoints1, descriptors1 = orb.detectAndCompute(img1, None)
+    keypoints2, descriptors2 = orb.detectAndCompute(img2, None)
 
-    # Create a BFMatcher object
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # Initialize FLANN parameters
+    FLANN_INDEX_LSH = 6
+    index_params = dict(algorithm=FLANN_INDEX_LSH, table_number=6, key_size=12, multi_probe_level=1)
+    search_params = dict(checks=50)  # or pass empty dictionary
 
-    # Match descriptors
-    matches = bf.match(descriptors1, descriptors2)
+    # Initialize FLANN matcher
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-    # Sort matches based on their distances
-    matches = sorted(matches, key=lambda x: x.distance)
+    # Perform matching
+    matches = flann.knnMatch(descriptors1, descriptors2, k=2)
 
-    # # Draw matches with more visible lines
-    # # Draw matches with more visible lines
-    # matched_image = cv2.drawMatches(image1, keypoints1, image2, keypoints2, matches[:10], None, 
-    #                                 matchColor=(0, 255, 0),  # Green lines
-    #                                 singlePointColor=(0, 0, 255),  # Red keypoints
-    #                                 matchesMask=None, 
-    #                                 flags=cv2.DRAW_MATCHES_FLAGS_DEFAULT)
+    # Ratio test to find good matches
+    good_matches = []
+    for match_pair in matches:
+        if len(match_pair) < 2:
+            continue
+        m , n = match_pair
+        if m.distance < 0.7 * n.distance:
+            good_matches.append(m)
 
-    # # Display the matched image
-    # cv2.namedWindow("Matched Features", cv2.WINDOW_NORMAL)
-    # cv2.imshow("Matched Features", matched_image)
-    # cv2.resizeWindow("Matched Features", 800, 600)  # Adjust the size here
+    # Draw matches
+    # matched_img = cv2.drawMatches(img1, keypoints1, img2, keypoints2, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    
+    # # Resize the window
+    # cv2.namedWindow("Matched Image", cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow("Matched Image", 800, 600)
+
+    # # Show the matched image
+    # cv2.imshow("Matched Image", matched_img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
+    
+    # Return matched keypoints
+    matched_keypoints1 = [keypoints1[match.queryIdx].pt for match in good_matches]
+    matched_keypoints2 = [keypoints2[match.trainIdx].pt for match in good_matches]
 
-    # Extract corresponding keypoints and their coordinates
-    corresponding_keypoints = []
-
-    for match in matches:
-        kp1 = keypoints1[match.queryIdx]
-        kp2 = keypoints2[match.trainIdx]
-        corresponding_keypoints.append([(int(kp1.pt[0]),int(kp1.pt[1])), 
-                                        (int(kp2.pt[0]), int(kp2.pt[1]))])
-
-    return corresponding_keypoints
+    return [ [keypoint, matched_keypoints2[index] ] \
+            for index,keypoint in enumerate ( matched_keypoints1 )]
 
 def get_blob(image : list, key_point : tuple , blob_size : tuple):
     """
@@ -83,28 +87,39 @@ def get_blob(image : list, key_point : tuple , blob_size : tuple):
 
     return blob_patch
 
-def generate_dataset_blobs_of_image ( image_pair : list,
+def generate_dataset_blobs_from_image ( image_pair : list,
                                     folder_path_to_save_blobs : str):
     
     image1 , image2 = image_pair
 
-    def get_file_name_for_blob ( key_point : tuple, extension = "jpg" ):
-        x , y = key_point
-        return "blob_at_" + str ( x ) + "_" + str ( y ) + "." + extension
+    def get_file_name_for_blob ( key_point : tuple, image_index : int, extension = "jpg" ):
+        return "blob_at_" + str ( int(key_point[0]) ) + "_" +\
+                str ( int(key_point[1]) ) + "_image_" + \
+                str ( image_index ) + "." + extension
 
-    def save_blob ( blob : list , key_point : tuple):
-        file_path = os.path.join ( folder_path_to_save_blobs , 
-                                get_file_name_for_blob ( key_point ) )
-
+    def save_blob ( blob : list , key_point : tuple, \
+                   image_index : int, folder_name : str):
+        
+        file_path = os.path.join ( folder_name , 
+                                get_file_name_for_blob ( key_point, image_index ) )
         cv2.imwrite ( file_path , blob )
 
     keypoints = find_corresponding_orb_features( image1 , image2 ) 
 
-    for key_pt in keypoints:
-        for x , y in key_pt:
-            img = get_blob ( image1 , ( x , y ) , ( 25 , 25 ) )
-            save_blob ( img , key_pt )
-            
+    for index , key_pt in enumerate ( keypoints ):
+        blob_folder = os.path.join ( folder_path_to_save_blobs, \
+                                    "blob" + str(index))
+        
+        if not os.path.exists ( blob_folder ): os.makedirs ( blob_folder )
+
+        img0 = get_blob ( image1 , ( key_pt [0][0] , key_pt [0][1] ) , ( 50 , 50 ) )
+        save_blob ( img0 , key_pt[0], 1, blob_folder )
+        
+        img1 = get_blob ( image2 , ( key_pt [1][0] , key_pt[1][1] ) , ( 50 , 50 ) )
+        save_blob ( img1 , key_pt[1], 2, blob_folder )
+    
+    print ( "Done :)" )
+
 def generate_dataset_blobs_from_image_folders ( 
         folder_for_image_pairs,
         folder_to_save_blobs
@@ -122,19 +137,20 @@ def generate_dataset_blobs_from_image_folders (
             image_file_path = os.path.join ( image_pair_folder_path , 
                                             image_file )
             image_pair.append ( cv2.imread ( image_file_path ) )
-        
+
         blobs_of_image_pair_folder_path = \
             os.path.join ( folder_to_save_blobs , 
                         "image_pair" + str ( index + 1 ))
 
-        print ( blobs_of_image_pair_folder_path )
+        if not os.path.exists ( blobs_of_image_pair_folder_path ):
+            os.makedirs ( blobs_of_image_pair_folder_path )
 
-        generate_dataset_blobs_of_image ( image_pair , 
+        generate_dataset_blobs_from_image ( image_pair , 
                                         blobs_of_image_pair_folder_path )
 
     print ( "Done :)" )
 
-generate_dataset_blobs_from_image_folders (
-    r"VisualOdometry\feature_extraction\dataset\images",
-    r"VisualOdometry\feature_extraction\dataset\blobs"
-)
+# generate_dataset_blobs_from_image_folders (
+#     folder_for_image_pairs = r"VisualOdometry\feature_extraction\dataset\images",
+#     folder_to_save_blobs = r"VisualOdometry\feature_extraction\dataset\blobs"
+# )

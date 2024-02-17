@@ -1,100 +1,66 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import utils
+import cv2
 
-class CNN_RNN(nn.Module):
-    def __init__(self, cnn_hidden_size, rnn_hidden_size, num_classes):
-        super(CNN_RNN, self).__init__()
-        
-        # CNN layers
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        
-        # Calculate the input size for the RNN
-        # Assuming input image size is 32x32
-        self.rnn_input_size = 64 * 8 * 8  # output size after conv2 and pooling
-        
-        # RNN layers
-        self.rnn = nn.GRU(input_size=self.rnn_input_size, hidden_size=rnn_hidden_size, num_layers=1, batch_first=True)
-        
-        # Fully connected layer
-        self.fc = nn.Linear(rnn_hidden_size, num_classes)
-        
-    def forward(self, x):
-        print("Input shape:", x.size())
-        
-        batch_size, seq_length, c, h, w = x.size()
-        
-        # CNN forward
-        x = x.view(batch_size * seq_length, c, h, w)
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-        print("After conv1 and pool:", x.size())
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-        print("After conv2 and pool:", x.size())
-        
-        # Reshape for RNN
-        x = x.view(batch_size, seq_length, -1)  # reshape (batch_size, seq_length, -1)
-        
-        # RNN forward
-        _, h_n = self.rnn(x)
-        
-        # Take the last hidden state of the RNN
-        h_n = h_n.squeeze(0)
-        
-        # Fully connected layer
-        out = self.fc(h_n)
-        print("Output shape:", out.size())
-        
-        return out
+def match_orb_features(image1_path, image2_path):
+    # Load images
+    img1 = cv2.imread(image1_path, cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(image2_path, cv2.IMREAD_GRAYSCALE)
 
-class SiameseNetwork(nn.Module):
-    def __init__(self):
-        super(SiameseNetwork, self).__init__()
-        
-        # Define two instances of the CNN_RNN network (sub-networks)
-        self.cnn_rnn1 = CNN_RNN(cnn_hidden_size=64, 
-                                rnn_hidden_size=128, 
-                                num_classes=10)
-        self.cnn_rnn2 = CNN_RNN(cnn_hidden_size=64, 
-                                rnn_hidden_size=128, 
-                                num_classes=10)
-        
-    def forward(self, input1, input2):
-        # Forward pass through both branches of the Siamese network
-        output1 = self.cnn_rnn1(input1)
-        output2 = self.cnn_rnn2(input2)
-        return utils.euclidean_distance ( output1, output2 )
+    # Initialize ORB detector
+    orb = cv2.ORB_create()
 
-# Example usage
-# Create an instance of the SiameseNetwork model
-# model = SiameseNetwork()
-# print(model)
+    # Detect keypoints and compute descriptors
+    keypoints1, descriptors1 = orb.detectAndCompute(img1, None)
+    keypoints2, descriptors2 = orb.detectAndCompute(img2, None)
 
-model = SiameseNetwork()
+    # Initialize FLANN parameters
+    FLANN_INDEX_LSH = 6
+    index_params = dict(algorithm=FLANN_INDEX_LSH, table_number=6, key_size=12, multi_probe_level=1)
+    search_params = dict(checks=50)  # or pass empty dictionary
 
-# Create sample tensors of appropriate dimensions
-batch_size = 1
-channels = 3
-height = 32
-width = 32
+    # Initialize FLANN matcher
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-# Create input tensors with sequences of length 2
-input1 = torch.randn(batch_size, 2, channels, height, width)
-input2 = torch.randn(batch_size, 2, channels, height, width)
+    # Perform matching
+    matches = flann.knnMatch(descriptors1, descriptors2, k=2)
 
-# Pass the input tensors through the model
-output = model(input1, input2)
+    # Ratio test to find good matches
+    good_matches = []
+    for match_pair in matches:
+        if len(match_pair) < 2:
+            continue
+        m , n = match_pair
+        if m.distance < 0.7 * n.distance:
+            good_matches.append(m)
 
-print ( output )
+    # Draw matches
+    matched_img = cv2.drawMatches(img1, keypoints1, img2, keypoints2, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    
+    # Resize the window
+    cv2.namedWindow("Matched Image", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Matched Image", 800, 600)
 
-# # Print the output shapes
-# print("Output shape from branch 1:", output1.shape)
-# print("Output shape from branch 2:", output2.shape)
+    # Show the matched image
+    cv2.imshow("Matched Image", matched_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+    # Return matched keypoints
+    matched_keypoints1 = [keypoints1[match.queryIdx].pt for match in good_matches]
+    matched_keypoints2 = [keypoints2[match.trainIdx].pt for match in good_matches]
 
-# dist = utils.euclidean_distance ( output1 , output2 )
+    return [ [keypoint, matched_keypoints2[index] ] \
+            for index,keypoint in enumerate ( matched_keypoints1 )]
 
-# print ( dist )
+# Example usage:
+if __name__ == "__main__":
+    # Provide the paths to the images
+    image1_path = \
+        r"VisualOdometry\feature_extraction\dataset\images\image_pair2\image1.jpg"
+    image2_path = \
+        r"VisualOdometry\feature_extraction\dataset\images\image_pair2\image2.jpg"
+    
+    # Match ORB features
+    num_matches = match_orb_features(image1_path, image2_path)
+
+    # Print the number of matches
+    print("Number of matches:", num_matches)
