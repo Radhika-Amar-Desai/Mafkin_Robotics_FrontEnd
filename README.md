@@ -10,6 +10,8 @@ The team also maintains a notion document for all the tasks and materials studie
 * Feature Extraction using deep learning done.
 * Visual odometry using ORB Flann feature matching using KITTI_2 dataset done.
 * Team has studied visual odometry from slam book ( Chapters 1 to 8 ) and notes for the same have been documented. 
+* Shortcomings of current deep learning feature extraction model were examined.
+* New deep learning model for feature extraction has been proposed.
 
 ## Next Task
-* Performing visual odometry using features extracted by deep learning.
+* Performing feature extraction using newly proposed deep learning model.
