@@ -87,6 +87,35 @@ def get_blob(image : list, key_point : tuple , blob_size : tuple):
 
     return blob_patch
 
+def mark_keypoint_and_region(image_path, keypoint, region_size):
+    """
+    Mark a keypoint with a yellow dot in the given image and mark the region around it with yellow color.
+
+    Parameters:
+    - image_path: Path to the input image.
+    - keypoint_x: X-coordinate of the keypoint.
+    - keypoint_y: Y-coordinate of the keypoint.
+    - region_size: Size of the region around the keypoint.
+    """
+    # Load the image
+    image = cv2.imread(image_path)
+
+    # Define the color (BGR) for the dot and region (in this case, yellow)
+    dot_color = (0, 255, 255)  # Yellow in BGR
+
+    keypoint_x , keypoint_y = keypoint
+
+    # Draw a dot at the keypoint coordinates
+    cv2.circle(image, (keypoint_x, keypoint_y), 5, dot_color, -1)
+
+    # Draw a rectangle to mark the region around the keypoint
+    half_size = region_size // 2
+    top_left = (keypoint_x - half_size, keypoint_y - half_size)
+    bottom_right = (keypoint_x + half_size, keypoint_y + half_size)
+    cv2.rectangle(image, top_left, bottom_right, dot_color, thickness=2)
+
+    return image
+
 def generate_dataset_blobs_from_image ( image_pair : list,
                                     folder_path_to_save_blobs : str):
     
@@ -97,13 +126,20 @@ def generate_dataset_blobs_from_image ( image_pair : list,
                 str ( int(key_point[1]) ) + "_image_" + \
                 str ( image_index ) + "." + extension
 
-    def save_blob ( blob : list , key_point : tuple, \
+    def save_blob_and_image ( blob : list , image : list, key_point : tuple, \
                    image_index : int, folder_name : str):
         
-        file_path = os.path.join ( folder_name , 
-                                get_file_name_for_blob ( key_point, image_index ) )
-        cv2.imwrite ( file_path , blob )
+        image_folder = os.path.join ( folder_name, "image" + str(image_index) )
+        
+        if not os.path.exists ( image_folder ): os.makedirs ( image_folder )
 
+        blob_file_path = os.path.join ( image_folder , 
+                                get_file_name_for_blob ( key_point, image_index ) )
+        cv2.imwrite ( blob_file_path , blob )
+        image_file_path = os.path.join ( image_folder ,
+                                "image" + str(image_index) + ".jpg" )
+        cv2.imwrite ( image_file_path , image )
+        
     keypoints = find_corresponding_orb_features( image1 , image2 ) 
 
     for index , key_pt in enumerate ( keypoints ):
@@ -113,10 +149,10 @@ def generate_dataset_blobs_from_image ( image_pair : list,
         if not os.path.exists ( blob_folder ): os.makedirs ( blob_folder )
 
         img0 = get_blob ( image1 , ( key_pt [0][0] , key_pt [0][1] ) , ( 50 , 50 ) )
-        save_blob ( img0 , key_pt[0], 1, blob_folder )
+        save_blob_and_image ( img0 , image1 , key_pt[0], 1, blob_folder )
         
         img1 = get_blob ( image2 , ( key_pt [1][0] , key_pt[1][1] ) , ( 50 , 50 ) )
-        save_blob ( img1 , key_pt[1], 2, blob_folder )
+        save_blob_and_image ( img1 , image2 , key_pt[1], 2, blob_folder )
     
     print ( "Done :)" )
 
@@ -150,7 +186,7 @@ def generate_dataset_blobs_from_image_folders (
 
     print ( "Done :)" )
 
-# generate_dataset_blobs_from_image_folders (
+# generate_dataset_blobs_from_image_folders(
 #     folder_for_image_pairs = r"VisualOdometry\feature_extraction\dataset\images",
 #     folder_to_save_blobs = r"VisualOdometry\feature_extraction\dataset\blobs"
 # )

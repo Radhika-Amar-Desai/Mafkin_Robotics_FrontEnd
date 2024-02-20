@@ -51,16 +51,43 @@ def match_orb_features(image1_path, image2_path):
     return [ [keypoint, matched_keypoints2[index] ] \
             for index,keypoint in enumerate ( matched_keypoints1 )]
 
-# Example usage:
-if __name__ == "__main__":
-    # Provide the paths to the images
-    image1_path = \
-        r"VisualOdometry\feature_extraction\dataset\images\image_pair2\image1.jpg"
-    image2_path = \
-        r"VisualOdometry\feature_extraction\dataset\images\image_pair2\image2.jpg"
-    
-    # Match ORB features
-    num_matches = match_orb_features(image1_path, image2_path)
+def mark_keypoint_with_region(image_path, keypoint, region_size):
+    """
+    Mark a keypoint with a yellow dot in the given image and mark the region around it with yellow color.
 
-    # Print the number of matches
-    print("Number of matches:", num_matches)
+    Parameters:
+    - image_path: Path to the input image.
+    - keypoint_x: X-coordinate of the keypoint.
+    - keypoint_y: Y-coordinate of the keypoint.
+    - region_size: Size of the region around the keypoint.
+    """
+    # Load the image
+    image = cv2.imread(image_path)
+
+    # Define the color (BGR) for the dot and region (in this case, yellow)
+    dot_color = (0, 255, 255)  # Yellow in BGR
+
+    keypoint_x , keypoint_y = keypoint
+
+    # Draw a dot at the keypoint coordinates
+    cv2.circle(image, (keypoint_x, keypoint_y), 5, dot_color, -1)
+
+    # Draw a rectangle to mark the region around the keypoint
+    half_size = region_size // 2
+    top_left = (keypoint_x - half_size, keypoint_y - half_size)
+    bottom_right = (keypoint_x + half_size, keypoint_y + half_size)
+    cv2.rectangle(image, top_left, bottom_right, dot_color, thickness=2)
+
+    return image
+
+image = mark_keypoint_with_region ( 
+        r"VisualOdometry\feature_extraction\dataset\images\image_pair1\image1.jpg",
+        (100,150), 50 )
+
+# Create a named window and resize it according to the image size
+cv2.namedWindow("window_name", cv2.WINDOW_NORMAL)
+cv2.resizeWindow("window_name", 800, 600)
+# Display the image with the marked keypoint and region
+cv2.imshow("window_name", image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
