@@ -23,7 +23,7 @@ class CNN_RNN(nn.Module):
         self.fc = nn.Linear(rnn_hidden_size, num_classes)
         
     def forward(self, x):
-        print("Input shape:", x.size())
+        # print("Input shape:", x.size())
         
         batch_size, seq_length, c, h, w = x.size()
         
@@ -31,10 +31,10 @@ class CNN_RNN(nn.Module):
         x = x.view(batch_size * seq_length, c, h, w)
         x = F.relu(self.conv1(x))
         x = self.pool(x)
-        print("After conv1 and pool:", x.size())
+        # print("After conv1 and pool:", x.size())
         x = F.relu(self.conv2(x))
         x = self.pool(x)
-        print("After conv2 and pool:", x.size())
+        # print("After conv2 and pool:", x.size())
         
         # Reshape for RNN
         x = x.view(batch_size, seq_length, -1)  # reshape (batch_size, seq_length, -1)
@@ -47,7 +47,7 @@ class CNN_RNN(nn.Module):
         
         # Fully connected layer
         out = self.fc(h_n)
-        print("Output shape:", out.size())
+        # print("Output shape:", out.size())
         
         return out
 
@@ -68,3 +68,9 @@ class SiameseNetwork(nn.Module):
         output1 = self.cnn_rnn1(input1)
         output2 = self.cnn_rnn2(input2)
         return output1 , output2 
+
+model = SiameseNetwork()
+t1 = torch.randn ( 1,2,3,32,32 )
+t2 = torch.randn ( 1,2,3,32,32 )
+# print ( model ( t1, t2 ) )
+

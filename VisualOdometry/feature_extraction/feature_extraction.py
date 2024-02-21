@@ -3,6 +3,7 @@ import numpy as np
 import utils as utils
 import os
 import shutil
+import torch
 
 def find_corresponding_orb_features(image1, image2):
     # Load images
@@ -333,6 +334,15 @@ def generate_dissimilar_folder ( dissimilar_folder_path : str ):
     for image_pair in image_pair_folder_paths:
         swapping_blobs_in_image_pair ( image_pair )
 
+def rotate_images ( org_image : list ):
+    return [ org_image, 
+            cv2.rotate ( org_image, cv2.ROTATE_180 ),
+            cv2.rotate ( org_image, cv2.ROTATE_90_CLOCKWISE ),
+            cv2.rotate ( org_image, cv2.ROTATE_90_COUNTERCLOCKWISE )  ]
+
+def augment_images ( folder_name : str ):
+    pass
+
 # generate_similar_folder (
 #     folder_for_blobs = r"VisualOdometry\feature_extraction\dataset\blobs",
 #     similar_folder_path = r"VisualOdometry\feature_extraction\dataset\similar"
@@ -343,5 +353,3 @@ def generate_dissimilar_folder ( dissimilar_folder_path : str ):
 #     folder_to_save_blobs = r"VisualOdometry\feature_extraction\dataset\blobs"
 # )
     
-generate_similar_folder ( r"VisualOdometry\feature_extraction\dataset\dissimilar",
-                        r"VisualOdometry\feature_extraction\dataset\dissimilar2" )
