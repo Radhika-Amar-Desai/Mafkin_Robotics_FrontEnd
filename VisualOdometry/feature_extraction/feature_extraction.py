@@ -334,14 +334,64 @@ def generate_dissimilar_folder ( dissimilar_folder_path : str ):
     for image_pair in image_pair_folder_paths:
         swapping_blobs_in_image_pair ( image_pair )
 
-def rotate_images ( org_image : list ):
-    return [ org_image, 
-            cv2.rotate ( org_image, cv2.ROTATE_180 ),
-            cv2.rotate ( org_image, cv2.ROTATE_90_CLOCKWISE ),
-            cv2.rotate ( org_image, cv2.ROTATE_90_COUNTERCLOCKWISE )  ]
+def rotate_images ( org_image_file : str ):
+    # VisualOdometry\feature_extraction\dataset_for_model\train\dissimilar\image_pair1_blob0\image1\blob_at_1573_2187_image_1.jpg
+    
+    print ( org_image_file )
+    def generate_image_file_name ( org_image_file : str,
+                                  rotate_wise_image_idx : int ):
+
+        image_pair_folder = org_image_file.split("\\")[:-2]
+        image_idx_wise = org_image_file.split("\\")[-2]
+        image_file = org_image_file.split("\\")[-1]
+
+        new_image_pair_folder = "\\".join(image_pair_folder) + "_" \
+                                + str ( rotate_wise_image_idx )
+        
+        if not os.path.exists ( new_image_pair_folder ): os.makedirs ( new_image_pair_folder )
+
+        new_image_idx_wise = os.path.join ( new_image_pair_folder, image_idx_wise )
+        new_image_file_path = os.path.join ( new_image_idx_wise, image_file )
+
+        return new_image_file_path
+
+    org_image = cv2.imread ( org_image_file )
+    
+    filename_image =  { generate_image_file_name ( org_image_file, 0 ) : org_image,
+            generate_image_file_name ( org_image_file, 1 ) : cv2.rotate ( org_image , cv2.ROTATE_180 ),
+            generate_image_file_name ( org_image_file, 2 ) : cv2.rotate ( org_image, cv2.ROTATE_90_CLOCKWISE ),
+            generate_image_file_name ( org_image_file, 3  ) : cv2.rotate ( org_image, cv2.ROTATE_90_COUNTERCLOCKWISE ) }
+
+    for filename in filename_image:
+        cv2.imwrite ( filename, filename_image [ filename ] )
 
 def augment_images ( folder_name : str ):
-    pass
+    image_pair_folders = [ image_folder for image_folder \
+                          in os.listdir ( folder_name ) ]
+    
+    image_pair_folders_path = [ os.path.join ( folder_name, image_pair_folder) \
+                               for image_pair_folder in image_pair_folders ]    
+    for index,image_folder_path in enumerate ( image_pair_folders_path ):
+
+        for image in os.listdir ( image_folder_path ):
+
+            image_file_path = os.path.join ( image_folder_path, image )
+            images_to_be_rotated = os.listdir ( image_file_path )
+            images_to_be_rotated_path = [ os.path.join ( image_file_path, 
+                                                image_to_be_rotated ) \
+                                        for image_to_be_rotated in \
+                                            images_to_be_rotated ] 
+            
+            for image_to_be_rotated_path in images_to_be_rotated_path:
+                rotate_images ( image_to_be_rotated_path )
+
+        print ( "Done with ", index )
+
+    print ( "Done :)" )
+
+if __name__ == "__main__":
+
+    augment_images ( r"VisualOdometry\feature_extraction\dataset_for_model\train\dissimilar" )
 
 # generate_similar_folder (
 #     folder_for_blobs = r"VisualOdometry\feature_extraction\dataset\blobs",

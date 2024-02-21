@@ -14,7 +14,7 @@ class CNN_RNN(nn.Module):
         
         # Calculate the input size for the RNN
         # Assuming input image size is 32x32
-        self.rnn_input_size = 64 * 8 * 8  # output size after conv2 and pooling
+        self.rnn_input_size = 64 * 125 * 125  # output size after conv2 and pooling
         
         # RNN layers
         self.rnn = nn.GRU(input_size=self.rnn_input_size, hidden_size=rnn_hidden_size, num_layers=1, batch_first=True)
@@ -69,8 +69,8 @@ class SiameseNetwork(nn.Module):
         output2 = self.cnn_rnn2(input2)
         return output1 , output2 
 
-model = SiameseNetwork()
-t1 = torch.randn ( 1,2,3,32,32 )
-t2 = torch.randn ( 1,2,3,32,32 )
+# model = SiameseNetwork()
+# t1 = torch.randn ( 1,2,3,500,500 )
+# t2 = torch.randn ( 1,2,3,500,500 )
 # print ( model ( t1, t2 ) )
 

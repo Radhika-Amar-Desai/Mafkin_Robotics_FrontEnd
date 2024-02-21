@@ -71,7 +71,7 @@ class CustomDataset(Dataset):
                 self.labels.append ( class_name )
 
     def __len__(self):
-        return len(self.image_list)
+        return len(self.labels)
 
     def __getitem__(self, idx):
         # Load image and mask
@@ -96,7 +96,7 @@ class CustomDataset(Dataset):
         blob1_path, image1_path = self.inputs1 [ idx ]
         blob2_path, image2_path = self.inputs2 [ idx ]
 
-        label = self.labels [ idx ]
+        label = int ( self.labels [ idx ] == "similar" )
 
         blob1 = self.transform ( Image.open ( blob1_path ).convert('RGB') )
         image1 = self.transform ( Image.open ( image1_path ).convert('RGB') ) 
@@ -104,7 +104,20 @@ class CustomDataset(Dataset):
         blob2 = self.transform ( Image.open ( blob2_path ).convert('RGB') )
         image2 = self.transform ( Image.open ( image2_path ).convert('RGB') ) 
 
-        return [ blob1, image1 ], [ blob2, image2 ], label
+        input1 = torch.cat((blob1.unsqueeze(0), image1.unsqueeze(0)), dim=0)
+        input2 = torch.cat((blob2.unsqueeze(0), image2.unsqueeze(0)), dim=0)
+      
+        return input1, input2, label
+
+# transforms = transforms.Compose([
+#     transforms.Resize((config.INPUT_IMAGE_HEIGHT,
+#                     config.INPUT_IMAGE_WIDTH)),
+#     transforms.ToTensor()])
+
+# ds = CustomDataset ( r"VisualOdometry\feature_extraction\dataset_for_model\train",
+#                     transforms )
+
+# print ( ds[2] )
 
 if __name__ == "__main__":
 
@@ -113,14 +126,17 @@ if __name__ == "__main__":
                         config.INPUT_IMAGE_WIDTH)),
         transforms.ToTensor()])
 
-    dataset = CustomDataset ( 
-            root_dir = \
-            r"VisualOdometry\feature_extraction\dataset_for_model\dissimilar",
-            transform = transforms )
+    train_dict = r"VisualOdometry\feature_extraction\dataset_for_model\train"
+    test_dict = r"VisualOdometry\feature_extraction\dataset_for_model\test"
 
-    trainDS = r"VisualOdometry\feature_extraction\dataset_for_model"
-
+    trainDS = CustomDataset ( train_dict , transforms )
+    testDS = CustomDataset ( test_dict , transforms )
+    
     train_loader = DataLoader(trainDS, shuffle=True,
+            batch_size=4, pin_memory=config.PIN_MEMORY,
+            num_workers=os.cpu_count(), drop_last=True)
+
+    test_loader = DataLoader(testDS, shuffle=True,
             batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY,
             num_workers=os.cpu_count(), drop_last=True)
 
@@ -134,27 +150,32 @@ if __name__ == "__main__":
     # Training loop
     num_epochs = 10
     for epoch in range(num_epochs):
+        print ( "Epoch : ", epoch )
         model.train()
         running_loss = 0.0
         
         for i, data in enumerate(train_loader, 0):
+            print ( "Batch : ", i )
             running_loss = 0.0
             # Get inputs; data is a list of [inputs1, inputs2, labels]
             inputs1, inputs2, labels = data
-            
+            print ( "Data Received", inputs1.shape )
             # Zero the parameter gradients
             optimizer.zero_grad()
-            
+            print ( "Zeroed the parameter gradients" )            
             # Forward pass
             outputs1, outputs2 = model(inputs1, inputs2)
-            
+            print ( "Forward pass done." )
+
             # Compute the contrastive loss
-            loss = criterion(outputs1, outputs2)  # You might need to define your own contrastive loss
-            
+            loss = criterion(outputs1, outputs2, labels)  # You might need to define your own contrastive loss
+            print ( "Computed loss" ) 
+
             # Backward pass and optimize
             loss.backward()
             optimizer.step()
-            
+            print ( "Backward pass and optimize." )
+
             # Print statistics
             running_loss += loss.item()
             print('[%d %d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
