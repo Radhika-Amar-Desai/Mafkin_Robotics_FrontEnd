@@ -348,9 +348,14 @@ def rotate_images ( org_image_file : str ):
         new_image_pair_folder = "\\".join(image_pair_folder) + "_" \
                                 + str ( rotate_wise_image_idx )
         
-        if not os.path.exists ( new_image_pair_folder ): os.makedirs ( new_image_pair_folder )
+        if not os.path.exists ( new_image_pair_folder ): 
+            os.makedirs ( new_image_pair_folder )
 
         new_image_idx_wise = os.path.join ( new_image_pair_folder, image_idx_wise )
+        
+        if not os.path.exists ( new_image_idx_wise ): 
+            os.makedirs ( new_image_idx_wise )
+        
         new_image_file_path = os.path.join ( new_image_idx_wise, image_file )
 
         return new_image_file_path
@@ -389,9 +394,7 @@ def augment_images ( folder_name : str ):
 
     print ( "Done :)" )
 
-if __name__ == "__main__":
-
-    augment_images ( r"VisualOdometry\feature_extraction\dataset_for_model\train\dissimilar" )
+augment_images ( r"VisualOdometry\feature_extraction\dataset_for_model\test\dissimilar")
 
 # generate_similar_folder (
 #     folder_for_blobs = r"VisualOdometry\feature_extraction\dataset\blobs",
