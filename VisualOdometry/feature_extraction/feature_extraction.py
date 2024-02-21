@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import utils as utils
 import os
+import shutil
 
 def find_corresponding_orb_features(image1, image2):
     # Load images
@@ -186,7 +187,161 @@ def generate_dataset_blobs_from_image_folders (
 
     print ( "Done :)" )
 
+def generate_similar_folder ( folder_for_blobs : str, similar_folder_path : str ):
+    
+    if not os.path.exists ( similar_folder_path ): os.makedirs ( similar_folder_path )
+    
+    for image_pair_folder in os.listdir ( folder_for_blobs ):
+        
+        image_pair_folder_path = os.path.join ( folder_for_blobs , 
+                                               image_pair_folder )
+        
+        for blob_folder in os.listdir ( image_pair_folder_path ):
+            
+            new_folder_name = image_pair_folder + "_" + blob_folder
+            
+            blob_folder_path = os.path.join ( image_pair_folder_path, blob_folder )
+            new_folder_path = os.path.join ( similar_folder_path , new_folder_name )
+
+            shutil.copytree ( blob_folder_path , new_folder_path )
+        
+    print ( "Done :)" )
+
+def swap_image_files(file_path_1, file_path_2):
+    # Open both image files in binary read mode and read their contents
+    with open(file_path_1, 'rb') as file1, open(file_path_2, 'rb') as file2:
+        file1_content = file1.read()
+        file2_content = file2.read()
+    
+    # Open both image files in binary write mode and swap their contents
+    with open(file_path_1, 'wb') as file1, open(file_path_2, 'wb') as file2:
+        file1.write(file2_content)
+        file2.write(file1_content)
+
+def generate_dissimilar_folder ( dissimilar_folder_path : str ):
+    """
+        How current folder directory looks :
+            |__ image_pair1
+                |__blob0
+                    |__image1
+                        |__image1.jpg
+                        |__blob0_image1.jpg
+                    |__image2
+                        |__image2.jpg
+                        |__blob0_image2.jpg
+                |__blob1
+                    |__image1
+                        |__image1.jpg
+                        |__blob1_image1.jpg
+                    |__image2
+                        |__image2.jpg
+                        |__blob1_image2.jpg
+
+        How we want dissimilar folder to look like :
+            |__image_pair1
+                |__blob0
+                    |__image1
+                        |__image1.jpg
+                        |__blob1_image1.jpg
+                    |__image2
+                        |__image2.jpg
+                        |__blob1_image2.jpg
+                |__blob1
+                    |__image1
+                        |__image1.jpg
+                        |__blob2_image1.jpg
+                    |__image2
+                        |__image2.jpg
+                        |__blob2_image2.jpg        
+    """
+
+    def swapping_blobs_in_image_pair ( image_pair_path : str):
+            
+        blob_folders_name =  os.listdir ( image_pair_path )
+        
+        for index, blob_folder in enumerate ( blob_folders_name ):
+                
+            if index < len ( blob_folders_name ) - 1:
+                next_blob_folder = blob_folders_name [ index + 1 ]
+                next_blob_folder_path = os.path.join ( image_pair_path, 
+                                                    next_blob_folder )
+                    
+                next_blob_image2_folder_path = os.path.join ( next_blob_folder_path,
+                                                            "image2" )
+                
+                next_blob_image2_file = [ file for file in \
+                                        os.listdir ( 
+                                            next_blob_image2_folder_path )\
+                                        if "blob" in file][0]
+                
+                next_blob_image2_file_path = os.path.join ( next_blob_image2_folder_path,
+                                                        next_blob_image2_file )
+                curr_blob_folder_path = os.path.join ( image_pair_path, 
+                                                        blob_folder )
+                
+                curr_blob_image2_folder_path = os.path.join ( 
+                                                    curr_blob_folder_path,
+                                                    "image2" )
+                curr_blob_image2_file = [ file for file in \
+                                            os.listdir ( 
+                                                curr_blob_image2_folder_path )\
+                                            if "blob" in file ][0]
+
+                curr_blob_image2_file_path = os.path.join ( curr_blob_image2_folder_path,
+                                                        curr_blob_image2_file )
+                
+                swap_image_files ( file_path_1 = next_blob_image2_file_path,
+                                    file_path_2 = curr_blob_image2_file_path )            
+                
+            else:
+                next_blob_folder = blob_folders_name [ 0 ]
+                next_blob_folder_path = os.path.join ( image_pair_path, 
+                                                    next_blob_folder )
+                    
+                next_blob_image2_folder_path = os.path.join ( next_blob_folder_path,
+                                                            "image2" )
+                
+                next_blob_image2_file = [ file for file in \
+                                        os.listdir ( 
+                                            next_blob_image2_folder_path )\
+                                        if "blob" in file][0]
+                
+                next_blob_image2_file_path = os.path.join ( next_blob_image2_folder_path,
+                                                        next_blob_image2_file )
+                curr_blob_folder_path = os.path.join ( image_pair_path, 
+                                                    blob_folders_name [ -1 ] )
+                
+                curr_blob_image2_folder_path = os.path.join ( 
+                                                    curr_blob_folder_path,
+                                                    "image2" )
+                curr_blob_image2_file = [ file for file in \
+                                            os.listdir ( 
+                                                curr_blob_image2_folder_path )\
+                                            if "blob" in file ][0]
+
+                curr_blob_image2_file_path = os.path.join ( curr_blob_image2_folder_path,
+                                                        curr_blob_image2_file )
+                
+                swap_image_files ( file_path_1 = next_blob_image2_file_path,
+                                    file_path_2 = curr_blob_image2_file_path )
+ 
+    image_pair_folders_name = os.listdir ( dissimilar_folder_path )
+    image_pair_folder_paths = [ 
+        os.path.join ( dissimilar_folder_path, image_pair_folder )\
+        for image_pair_folder in image_pair_folders_name ]
+
+    for image_pair in image_pair_folder_paths:
+        swapping_blobs_in_image_pair ( image_pair )
+
+# generate_similar_folder (
+#     folder_for_blobs = r"VisualOdometry\feature_extraction\dataset\blobs",
+#     similar_folder_path = r"VisualOdometry\feature_extraction\dataset\similar"
+# )
+
 # generate_dataset_blobs_from_image_folders(
 #     folder_for_image_pairs = r"VisualOdometry\feature_extraction\dataset\images",
 #     folder_to_save_blobs = r"VisualOdometry\feature_extraction\dataset\blobs"
 # )
+    
+generate_similar_folder ( r"VisualOdometry\feature_extraction\dataset\dissimilar",
+                        r"VisualOdometry\feature_extraction\dataset\dissimilar2" )
