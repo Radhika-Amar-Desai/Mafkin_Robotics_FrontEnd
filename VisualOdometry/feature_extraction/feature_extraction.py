@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import utils as utils
 import os
+import random
 import shutil
 import torch
 
@@ -220,49 +221,46 @@ def swap_image_files(file_path_1, file_path_2):
         file2.write(file1_content)
 
 def generate_dissimilar_folder ( dissimilar_folder_path : str ):
-    """
-        How current folder directory looks :
-            |__ image_pair1
-                |__blob0
-                    |__image1
-                        |__image1.jpg
-                        |__blob0_image1.jpg
-                    |__image2
-                        |__image2.jpg
-                        |__blob0_image2.jpg
-                |__blob1
-                    |__image1
-                        |__image1.jpg
-                        |__blob1_image1.jpg
-                    |__image2
-                        |__image2.jpg
-                        |__blob1_image2.jpg
-
-        How we want dissimilar folder to look like :
-            |__image_pair1
-                |__blob0
-                    |__image1
-                        |__image1.jpg
-                        |__blob1_image1.jpg
-                    |__image2
-                        |__image2.jpg
-                        |__blob1_image2.jpg
-                |__blob1
-                    |__image1
-                        |__image1.jpg
-                        |__blob2_image1.jpg
-                    |__image2
-                        |__image2.jpg
-                        |__blob2_image2.jpg        
-    """
-
+    
     def swapping_blobs_in_image_pair ( image_pair_path : str):
-            
+        
         blob_folders_name =  os.listdir ( image_pair_path )
         
         for index, blob_folder in enumerate ( blob_folders_name ):
-                
-            if index < len ( blob_folders_name ) - 1:
+
+            if index == 0:
+                    next_blob_folder = blob_folders_name [ 0 ]
+                    next_blob_folder_path = os.path.join ( image_pair_path, 
+                                                        next_blob_folder )
+                        
+                    next_blob_image2_folder_path = os.path.join ( next_blob_folder_path,
+                                                                "image2" )
+                    
+                    next_blob_image2_file = [ file for file in \
+                                            os.listdir ( 
+                                                next_blob_image2_folder_path )\
+                                            if "blob" in file][0]
+                    
+                    next_blob_image2_file_path = os.path.join ( next_blob_image2_folder_path,
+                                                            next_blob_image2_file )
+                    curr_blob_folder_path = os.path.join ( image_pair_path, 
+                                                        blob_folders_name [ -1 ] )
+                    
+                    curr_blob_image2_folder_path = os.path.join ( 
+                                                        curr_blob_folder_path,
+                                                        "image2" )
+                    curr_blob_image2_file = [ file for file in \
+                                                os.listdir ( 
+                                                    curr_blob_image2_folder_path )\
+                                                if "blob" in file ][0]
+
+                    curr_blob_image2_file_path = os.path.join ( curr_blob_image2_folder_path,
+                                                            curr_blob_image2_file )
+                    
+                    swap_image_files ( file_path_1 = next_blob_image2_file_path,
+                                        file_path_2 = curr_blob_image2_file_path )
+
+            elif 0 < index < len ( blob_folders_name ) - 1:
                 next_blob_folder = blob_folders_name [ index + 1 ]
                 next_blob_folder_path = os.path.join ( image_pair_path, 
                                                     next_blob_folder )
@@ -287,45 +285,14 @@ def generate_dissimilar_folder ( dissimilar_folder_path : str ):
                                             os.listdir ( 
                                                 curr_blob_image2_folder_path )\
                                             if "blob" in file ][0]
-
                 curr_blob_image2_file_path = os.path.join ( curr_blob_image2_folder_path,
                                                         curr_blob_image2_file )
                 
-                swap_image_files ( file_path_1 = next_blob_image2_file_path,
-                                    file_path_2 = curr_blob_image2_file_path )            
-                
-            else:
-                next_blob_folder = blob_folders_name [ 0 ]
-                next_blob_folder_path = os.path.join ( image_pair_path, 
-                                                    next_blob_folder )
-                    
-                next_blob_image2_folder_path = os.path.join ( next_blob_folder_path,
-                                                            "image2" )
-                
-                next_blob_image2_file = [ file for file in \
-                                        os.listdir ( 
-                                            next_blob_image2_folder_path )\
-                                        if "blob" in file][0]
-                
-                next_blob_image2_file_path = os.path.join ( next_blob_image2_folder_path,
-                                                        next_blob_image2_file )
-                curr_blob_folder_path = os.path.join ( image_pair_path, 
-                                                    blob_folders_name [ -1 ] )
-                
-                curr_blob_image2_folder_path = os.path.join ( 
-                                                    curr_blob_folder_path,
-                                                    "image2" )
-                curr_blob_image2_file = [ file for file in \
-                                            os.listdir ( 
-                                                curr_blob_image2_folder_path )\
-                                            if "blob" in file ][0]
+                print ( curr_blob_image2_file_path, '\n', next_blob_image2_file_path )
 
-                curr_blob_image2_file_path = os.path.join ( curr_blob_image2_folder_path,
-                                                        curr_blob_image2_file )
-                
                 swap_image_files ( file_path_1 = next_blob_image2_file_path,
-                                    file_path_2 = curr_blob_image2_file_path )
- 
+                                    file_path_2 = curr_blob_image2_file_path ) 
+
     image_pair_folders_name = os.listdir ( dissimilar_folder_path )
     image_pair_folder_paths = [ 
         os.path.join ( dissimilar_folder_path, image_pair_folder )\
@@ -333,76 +300,89 @@ def generate_dissimilar_folder ( dissimilar_folder_path : str ):
 
     for image_pair in image_pair_folder_paths:
         swapping_blobs_in_image_pair ( image_pair )
-
-def rotate_images ( org_image_file : str ):
-    # VisualOdometry\feature_extraction\dataset_for_model\train\dissimilar\image_pair1_blob0\image1\blob_at_1573_2187_image_1.jpg
-    
-    print ( org_image_file )
-    def generate_image_file_name ( org_image_file : str,
-                                  rotate_wise_image_idx : int ):
-
-        image_pair_folder = org_image_file.split("\\")[:-2]
-        image_idx_wise = org_image_file.split("\\")[-2]
-        image_file = org_image_file.split("\\")[-1]
-
-        new_image_pair_folder = "\\".join(image_pair_folder) + "_" \
-                                + str ( rotate_wise_image_idx )
-        
-        if not os.path.exists ( new_image_pair_folder ): 
-            os.makedirs ( new_image_pair_folder )
-
-        new_image_idx_wise = os.path.join ( new_image_pair_folder, image_idx_wise )
-        
-        if not os.path.exists ( new_image_idx_wise ): 
-            os.makedirs ( new_image_idx_wise )
-        
-        new_image_file_path = os.path.join ( new_image_idx_wise, image_file )
-
-        return new_image_file_path
-
-    org_image = cv2.imread ( org_image_file )
-    
-    filename_image =  { generate_image_file_name ( org_image_file, 0 ) : org_image,
-            generate_image_file_name ( org_image_file, 1 ) : cv2.rotate ( org_image , cv2.ROTATE_180 ),
-            generate_image_file_name ( org_image_file, 2 ) : cv2.rotate ( org_image, cv2.ROTATE_90_CLOCKWISE ),
-            generate_image_file_name ( org_image_file, 3  ) : cv2.rotate ( org_image, cv2.ROTATE_90_COUNTERCLOCKWISE ) }
-
-    for filename in filename_image:
-        cv2.imwrite ( filename, filename_image [ filename ] )
-
-def augment_images ( folder_name : str ):
-    image_pair_folders = [ image_folder for image_folder \
-                          in os.listdir ( folder_name ) ]
-    
-    image_pair_folders_path = [ os.path.join ( folder_name, image_pair_folder) \
-                               for image_pair_folder in image_pair_folders ]    
-    for index,image_folder_path in enumerate ( image_pair_folders_path ):
-
-        for image in os.listdir ( image_folder_path ):
-
-            image_file_path = os.path.join ( image_folder_path, image )
-            images_to_be_rotated = os.listdir ( image_file_path )
-            images_to_be_rotated_path = [ os.path.join ( image_file_path, 
-                                                image_to_be_rotated ) \
-                                        for image_to_be_rotated in \
-                                            images_to_be_rotated ] 
-            
-            for image_to_be_rotated_path in images_to_be_rotated_path:
-                rotate_images ( image_to_be_rotated_path )
-
-        print ( "Done with ", index )
-
     print ( "Done :)" )
 
-augment_images ( r"VisualOdometry\feature_extraction\dataset_for_model\test\dissimilar")
+def split_into_train_test ():
 
-# generate_similar_folder (
-#     folder_for_blobs = r"VisualOdometry\feature_extraction\dataset\blobs",
-#     similar_folder_path = r"VisualOdometry\feature_extraction\dataset\similar"
-# )
+    # Define paths
+    dataset_dir = r'VisualOdometry\feature_extraction\dataset_for_model'
+    train_dir = r'VisualOdometry\feature_extraction\dataset_for_model\train'
+    test_dir = r'VisualOdometry\feature_extraction\dataset_for_model\test'
 
-# generate_dataset_blobs_from_image_folders(
-#     folder_for_image_pairs = r"VisualOdometry\feature_extraction\dataset\images",
-#     folder_to_save_blobs = r"VisualOdometry\feature_extraction\dataset\blobs"
-# )
+    # Create train and test directories if they don't exist
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(test_dir, exist_ok=True)
+
+    # Define class folders
+    class_folders = os.listdir(dataset_dir)
+
+    # Define train-test split ratio (e.g., 80-20)
+    train_ratio = 0.8
+
+    # Iterate through each class folder
+    for folder in class_folders:
+        class_subfolders = os.listdir(os.path.join(dataset_dir, folder))
+        random.shuffle(class_subfolders)
+        train_size = int(len(class_subfolders) * train_ratio)
+
+        # Split folders into train and test sets
+        train_subfolders = class_subfolders[:train_size]
+        test_subfolders = class_subfolders[train_size:]
+
+        # Move train folders
+        for subfolder in train_subfolders:
+            src = os.path.join(dataset_dir, folder, subfolder)
+            dst = os.path.join(train_dir, folder, subfolder)
+            shutil.move(src, dst)
+
+        # Move test folders
+        for subfolder in test_subfolders:
+            src = os.path.join(dataset_dir, folder, subfolder)
+            dst = os.path.join(test_dir, folder, subfolder)
+            shutil.move(src, dst)
+
+    print("Dataset split into train and test folders successfully.")
+
+def rotate_image_in_image_pair_folder ( image_pair_folder : str, index : int ):
+    rotation_transformation = [ cv2.ROTATE_180, 
+                            cv2.ROTATE_90_CLOCKWISE,
+                            cv2.ROTATE_90_COUNTERCLOCKWISE ]
     
+    for image_folder in os.listdir ( image_pair_folder ):
+        
+        image_folder_path = os.path.join ( image_pair_folder, image_folder )
+        
+        for image_file in os.listdir ( image_folder_path):
+            image_file_path = os.path.join ( image_folder_path, image_file )
+            print ( image_file_path )
+            image = cv2.imread ( image_file_path )
+            cv2.imwrite (image_file_path, 
+                        cv2.rotate (image,rotation_transformation[index]))
+
+def augment_image_in_image_pair_folder ( image_pair_folder_path : str ):
+    parent_dir = "\\".join(image_pair_folder_path.split ( "\\" ) [:-1])
+    image_pair_folder_name = image_pair_folder_path.split("\\")[-1]
+
+    for index in range ( 3 ):
+        
+        new_image_pair_folder_name = \
+            image_pair_folder_name + "_" + str ( index )
+        
+        new_image_pair_folder_path = \
+            os.path.join ( parent_dir, new_image_pair_folder_name )
+        
+        if not os.path.exists ( new_image_pair_folder_path ):
+            shutil.copytree ( image_pair_folder_path,
+                            new_image_pair_folder_path )
+            rotate_image_in_image_pair_folder ( new_image_pair_folder_path, index )
+
+def augment_images_of_folder ( folder_path ):
+    for image_pair_folder in os.listdir ( folder_path ):
+
+        image_pair_folder_path = os.path.join(folder_path,image_pair_folder)
+        print ( image_pair_folder_path )
+        augment_image_in_image_pair_folder ( image_pair_folder_path )
+    
+    print ( "Done :)" )
+
+augment_images_of_folder ( r"VisualOdometry\feature_extraction\dataset_for_model\train\dissimilar" )

@@ -133,11 +133,11 @@ if __name__ == "__main__":
     testDS = CustomDataset ( test_dict , transforms )
     
     train_loader = DataLoader(trainDS, shuffle=True,
-            batch_size=4, pin_memory=config.PIN_MEMORY,
+            batch_size=1, pin_memory=config.PIN_MEMORY,
             num_workers=os.cpu_count(), drop_last=True)
 
     test_loader = DataLoader(testDS, shuffle=True,
-            batch_size=config.BATCH_SIZE, pin_memory=config.PIN_MEMORY,
+            batch_size=4, pin_memory=config.PIN_MEMORY,
             num_workers=os.cpu_count(), drop_last=True)
 
     # Initialize the SiameseNetwork model
